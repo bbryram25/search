@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dessert Recipe Search</title>
+    <style>
+        /* CSS styles */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            background-color: #333;
+            color: white;
+        }
+        .navbar a {
+            color: white;
+            margin: 0 15px;
+            text-decoration: none;
+            font-size: 16px;
+        }
+        .navbar img {
+            height: 28px;
+        }
+        h1 {
+            font-size: 1.5em;
+            text-align: center;
+            color: #333;
+        }
+        input[type="text"] {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        #results {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <a href="searchpage"><img src="https://attic.sh/4vrkrvnpgcqusetb0ojgv3w22fi2" alt="Search Emoji"></a>
+        <a href="TeamPage">Team Page</a>
+        <a href="searchpage">Search</a>
+    </div>
+
+    <div class="container">
+        <h1>Dessert Recipe Search</h1>
+        <input type="text" id="queryInput" placeholder="Enter recipe title or ingredient...">
+        <button id="searchButton">Search</button>
+        <div id="results"></div>
+        <button id="loadMoreButton" style="display: none;">Load More</button>
+    </div>
+   
+  <script>
+        let currentPage = 1;  // Track the current page number
+        const pageSize = 10;  // Set the number of results per page
+    
+        document.getElementById('searchButton').addEventListener('click', function() {
+            const queryText = document.getElementById('queryInput').value;
+            currentPage = 1;  // Reset to the first page on new search
+            searchRecipes(queryText, currentPage);
+        });
+    
+        document.getElementById('loadMoreButton').addEventListener('click', function() {
+            const queryText = document.getElementById('queryInput').value;
+            currentPage++;  // Move to the next page
+            searchRecipes(queryText, currentPage);
+        });
+    
+        function searchRecipes(queryText, page) {
+            fetch('/search', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ query_text: queryText, page: page, size: pageSize })  // Send 'query_text', 'page', and 'size'
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                const resultsDiv = document.getElementById('results');
+                const loadMoreButton = document.getElementById('loadMoreButton');
+    
+                if (page === 1) {
+                    resultsDiv.innerHTML = '';  
+                }
+    
+                if (data.recipes.length === 0 && page === 1) {
+                    resultsDiv.innerHTML = '<p>No recipes found.</p>';
+                    loadMoreButton.style.display = 'none';  
+                } else {
+                    data.recipes.forEach(recipe => {
+                        const recipeDiv = document.createElement('div');
+    
+                        // Format ingredients list
+                        const ingredientsList = recipe.ingredients.map(ingredient => {
+                            return `<li>${ingredient.quantity || ''} of ${ingredient.name}</li>`;
+                        }).join('');
+    
+                        // Format steps list
+                        const stepsList = recipe.steps.map((step, index) => {
+                            return `<li>Step ${index + 1}: ${step}</li>`;
+                        }).join('');
+    
+                        recipeDiv.innerHTML = `
+                            <h2>${recipe.title}</h2>
+                            <p>${recipe.description}</p>
+                            <p><strong>Preparation Time:</strong> ${recipe.preparation_time} minutes</p>
+                            <p><strong>Cooking Time:</strong> ${recipe.cooking_time} minutes</p>
+                            <p><strong>Ratings:</strong> ${recipe.ratings}</p>
+                            <p><strong>Ingredients:</strong></p>
+                            <ul>${ingredientsList}</ul>
+                            <p><strong>Steps:</strong></p>
+                            <ul>${stepsList}</ul>
+                            <p>Created: ${recipe.created}</p>
+                            <img src="${recipe.image_url}" alt="${recipe.title}" style="max-width: 100%; height: auto;">
+                        `;
+                        resultsDiv.appendChild(recipeDiv);
+                    });
+    
+                    // Append the "Load More" button after the last recipe
+                    resultsDiv.appendChild(loadMoreButton);
+    
+                    if (data.has_more_pages) {
+                        loadMoreButton.style.display = 'block';
+                    } else {
+                        loadMoreButton.style.display = 'none';
+                    }
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+    </script>
+
+</body>
+</html>
